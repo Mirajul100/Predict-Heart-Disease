@@ -11,25 +11,49 @@ const resultDesc = document.getElementById('resultDesc');
 const probPct = document.getElementById('probPct');
 const probFill = document.getElementById('probFill');
 
+// -------------------- ICONS --------------------
 const HIGH_ICON = `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-2h2v2zm0-4h-2V7h2v6z"/>`;
 const LOW_ICON  = `<path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 14.5v-4.5h4v4.5l-2 1.5-2-1.5zm1-7.5c0-1.1.9-2 2-2s2 .9 2 2-.9 2-2 2-2-.9-2-2z"/>`;
 
-// Toast
+// -------------------- CSRF --------------------
+function getCookie(name) {
+    let cookieValue = null;
+    if (document.cookie && document.cookie !== '') {
+        const cookies = document.cookie.split(';');
+        for (let cookie of cookies) {
+            cookie = cookie.trim();
+            if (cookie.startsWith(name + '=')) {
+                cookieValue = decodeURIComponent(cookie.substring(name.length + 1));
+                break;
+            }
+        }
+    }
+    return cookieValue;
+}
+
+const csrftoken = getCookie('csrftoken');
+
+// -------------------- TOAST --------------------
 function showToast(msg, color) {
     const t = document.getElementById('toast');
     document.getElementById('toastMsg').textContent = msg;
     document.getElementById('toastDot').style.background = color;
     t.classList.add('show');
+
     setTimeout(() => t.classList.remove('show'), 3500);
 }
 
-// FORM SUBMIT — reads URLs injected by the template via data attributes
+// -------------------- FORM SUBMIT --------------------
 form.addEventListener('submit', async (e) => {
     e.preventDefault();
 
-    // Read URLs from the form's data attributes (set in the HTML template)
     const predictUrl = form.dataset.predictUrl;
     const historyUrl = form.dataset.historyUrl;
+
+    if (!predictUrl) {
+        showToast("Predict URL missing", "#ff6b35");
+        return;
+    }
 
     btnText.textContent = 'Analyzing...';
     spinner.style.display = 'block';
@@ -40,18 +64,30 @@ form.addEventListener('submit', async (e) => {
         const res = await fetch(predictUrl, {
             method: 'POST',
             body: fd,
+            headers: {
+                'X-CSRFToken': csrftoken
+            }
         });
 
-        const data = await res.json();
+        let data;
+        try {
+            data = await res.json();
+        } catch {
+            throw new Error("Server did not return JSON");
+        }
 
         if (!res.ok) {
-            throw new Error(data.error || 'Server error');
+            throw new Error(data.error || "Server error");
+        }
+
+        if (data.prediction === undefined || data.probability === undefined) {
+            throw new Error("Invalid response from backend");
         }
 
         const isHigh = data.prediction === 1;
-        const pct   = Math.round(data.probability * 100);
+        const pct = Math.round(data.probability * 100);
 
-        // Update result UI
+        // UI update
         resultCard.className = 'result-card ' + (isHigh ? 'high-risk' : 'low-risk');
         resultIcon.innerHTML = isHigh ? HIGH_ICON : LOW_ICON;
 
@@ -64,8 +100,8 @@ form.addEventListener('submit', async (e) => {
             ? 'High cardiovascular risk detected. Consult a cardiologist immediately.'
             : 'Low risk detected. Maintain healthy lifestyle and regular checkups.';
 
-        probPct.textContent   = pct + '% confidence';
-        probFill.style.width  = '0%';
+        probPct.textContent = pct + '% confidence';
+        probFill.style.width = '0%';
 
         resultSection.style.display = 'block';
 
@@ -90,15 +126,21 @@ form.addEventListener('submit', async (e) => {
     }
 });
 
-// HISTORY REFRESH
+// -------------------- HISTORY --------------------
 async function refreshHistory(historyUrl) {
     if (!historyUrl) return;
+
     try {
-        const res  = await fetch(historyUrl);
+        const res = await fetch(historyUrl);
+
+        if (!res.ok) return;
+
         const data = await res.json();
 
+        if (!data.records) return;
+
         const list = document.getElementById('historyList');
-        if (!data.records || data.records.length === 0) return;
+        if (!list) return;
 
         list.innerHTML = data.records.slice(0, 5).map(r => `
             <div class="history-item">
