@@ -7,6 +7,7 @@ from django.views.decorators.csrf import csrf_exempt
 from django.conf import settings
 from .forms import HeartPredictionForm
 from .models import PredictionRecord
+from django.views.decorators.csrf import csrf_exempt
 
 _model = None
 _scaler = None
@@ -28,7 +29,6 @@ def _load_models():
         return False
 
 NUMERICAL_COLUMNS = ['Age', 'RestingBP', 'Cholesterol', 'MaxHR', 'Oldpeak']
-
 
 def _predict(form_data: dict) -> dict:
     """Run ML prediction; returns dict with prediction & probability."""
@@ -78,7 +78,7 @@ def index(request):
         'stats': stats,
     })
 
-
+@csrf_exempt
 def predict(request):
     if request.method != 'POST':
         return JsonResponse({'error': 'POST required'}, status=405)
