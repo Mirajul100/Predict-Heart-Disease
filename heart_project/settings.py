@@ -5,6 +5,9 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 SECRET_KEY = 'django-insecure-heart-disease-prediction-secret-key-change-in-production'
 DEBUG = True
 ALLOWED_HOSTS = ['.vercel.app']
+CSRF_TRUSTED_ORIGINS = [
+    "https://*.vercel.app"
+]
 
 INSTALLED_APPS = [
     'django.contrib.admin',
