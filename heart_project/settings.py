@@ -82,11 +82,13 @@ else:
 # ─── Static Files ─────────────────────────────────────────────────────────────
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
+
 STATICFILES_DIRS = [
     BASE_DIR / 'static',
 ]
 
-STATICFILES_STORAGE = 'whitenoise.storage.CompressedManifestStaticFilesStorage'
+# Use this simpler storage for Vercel (more reliable)
+STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 
 # ─── ML Models ────────────────────────────────────────────────────────────────
 ML_MODELS_DIR = BASE_DIR / 'ml_models'
