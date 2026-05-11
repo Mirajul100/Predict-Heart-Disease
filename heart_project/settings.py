@@ -83,10 +83,8 @@ else:
 STATIC_URL = '/static/'
 STATIC_ROOT = BASE_DIR / 'staticfiles'
 
-# Only add directories that actually exist
-STATICFILES_DIRS = [
-    BASE_DIR / 'static',
-]
+# IMPORTANT: Empty for now because static folder doesn't exist yet
+STATICFILES_DIRS = []
 
 STATICFILES_STORAGE = 'whitenoise.storage.CompressedStaticFilesStorage'
 # ─── ML Models ────────────────────────────────────────────────────────────────
