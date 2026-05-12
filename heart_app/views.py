@@ -1,5 +1,6 @@
 import os
 import json
+import joblib
 import pandas as pd
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -18,9 +19,8 @@ def _load_models():
     if _model is not None:
         return True
     try:
-        import joblib
         ml_dir   = settings.ML_MODELS_DIR
-        _model   = joblib.load(ml_dir / 'logistic_heart.pkl')
+        _model   = joblib.load(ml_dir / 'knn_heart.pkl')
         _scaler  = joblib.load(ml_dir / 'scaler.pkl')
         _columns = joblib.load(ml_dir / 'columns_heart.pkl')
         return True
