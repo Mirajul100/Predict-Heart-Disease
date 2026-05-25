@@ -1,6 +1,7 @@
 import os
 import json
 import joblib
+import numpy as np
 import pandas as pd
 from django.shortcuts import render
 from django.http import JsonResponse
@@ -20,7 +21,7 @@ def _load_models():
         return True
     try:
         ml_dir   = settings.ML_MODELS_DIR
-        _model   = joblib.load(ml_dir / 'knn_heart.pkl')
+        _model   = joblib.load(ml_dir / 'xgboost_heart.pkl')
         _scaler  = joblib.load(ml_dir / 'scaler.pkl')
         _columns = joblib.load(ml_dir / 'columns_heart.pkl')
         return True
@@ -56,16 +57,29 @@ def _predict(form_data: dict) -> dict:
     }
 
     df = pd.DataFrame([raw])
+
+    # One-hot encode categorical columns
     df = pd.get_dummies(df)
+
+    # Add any missing columns (from training) with value 0
     for col in _columns:
         if col not in df.columns:
             df[col] = 0
-    df = df[_columns]
-    df[NUMERICAL_COLUMNS] = _scaler.transform(df[NUMERICAL_COLUMNS])
 
-    pred  = int(_model.predict(df)[0])
-    proba = float(_model.predict_proba(df)[0][pred])
+    # Reorder columns to EXACTLY match training order
+    df = df.reindex(columns=_columns, fill_value=0)
+
+    # Scale numerical columns
+    numerical_indices = [df.columns.get_loc(c) for c in NUMERICAL_COLUMNS if c in df.columns]
+    df_array = df.values.astype(float)
+    df_array[:, numerical_indices] = _scaler.transform(df_array[:, numerical_indices])
+
+    # ✅ KEY FIX: Pass as numpy array (no column names) to match training format
+    pred  = int(_model.predict(df_array)[0])
+    proba = float(_model.predict_proba(df_array)[0][pred])
+
     return {'prediction': pred, 'probability': round(proba, 2), 'demo': False}
+
 
 # ─── Views ────────────────────────────────────────────────────────────────────
 
@@ -114,7 +128,8 @@ def predict(request):
         # Save to DB (wrapped so a DB failure doesn't break the response)
         try:
             PredictionRecord.objects.create(
-                age=cd['age'],             sex=cd['sex'],
+                age=cd['age'],
+                sex=cd['sex'],
                 chest_pain_type=cd['chest_pain_type'],
                 resting_bp=cd['resting_bp'],
                 cholesterol=cd['cholesterol'],
@@ -122,12 +137,12 @@ def predict(request):
                 resting_ecg=cd['resting_ecg'],
                 max_hr=cd['max_hr'],
                 exercise_angina=cd['exercise_angina'],
-                oldpeak=cd['oldpeak'],     st_slope=cd['st_slope'],
+                oldpeak=cd['oldpeak'],
+                st_slope=cd['st_slope'],
                 prediction=result['prediction'],
             )
         except Exception as db_err:
             print(f"[DB] Save failed: {db_err}")
-            # Still return the prediction result even if DB save fails
 
         return JsonResponse(result)
 
