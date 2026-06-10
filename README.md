@@ -13,6 +13,9 @@ heart_project/
 │   ├── urls.py
 │   └── wsgi.py
 ├── heart_app/              # Main application
+|   |__staicfiles
+|     |__heard.css
+|     |__heard.js
 │   ├── templates/
 │   │   └── heart_app/
 │   │       └── index.html  # Full UI
@@ -22,9 +25,13 @@ heart_project/
 │   ├── urls.py
 │   └── admin.py
 ├── ml_models/              # ← Place your .pkl files here
-│   ├── logistic_heart.pkl
+│   ├── knn_heart.pkl
+|   ├── logistic_heart.pkl
 │   ├── scaler.pkl
 │   └── columns_heart.pkl
+|___staicfiles
+|   |__heard.css
+|   |__heard.js
 ├── manage.py
 ├── requirements.txt
 └── README.md
